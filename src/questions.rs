@@ -25,6 +25,7 @@ struct QuestionListRow {
     code: String,
     statement: String,
     difficulty: String,
+    language: Option<String>,
     concept_id: Uuid,
     concept_name: String,
     subject_name: String,
@@ -41,6 +42,7 @@ pub struct QuestionListItem {
     pub code: String,
     pub statement: String,
     pub difficulty: String,
+    pub language: Option<String>,
     pub concept_id: Uuid,
     pub concept_name: String,
     pub subject_name: String,
@@ -62,6 +64,7 @@ struct QuestionDetailRow {
     code: String,
     statement: String,
     difficulty: String,
+    language: Option<String>,
     concept_id: Uuid,
     concept_name: String,
     subject_name: String,
@@ -81,6 +84,15 @@ struct QuestionDetailRow {
 pub struct OptionDto {
     pub label: String,
     pub text: String,
+    pub image_url: Option<String>,
+}
+
+#[derive(Debug, Serialize, sqlx::FromRow)]
+pub struct QuestionAssetDto {
+    pub kind: String,
+    pub option_label: Option<String>,
+    pub url: String,
+    pub position: i32,
 }
 
 #[derive(Debug, Serialize)]
@@ -90,6 +102,8 @@ pub struct QuestionDetail {
     pub statement: String,
     pub options: Vec<OptionDto>,
     pub difficulty: String,
+    pub language: Option<String>,
+    pub assets: Vec<QuestionAssetDto>,
     pub concept_id: Uuid,
     pub concept_name: String,
     pub subject_name: String,
@@ -211,6 +225,7 @@ pub async fn list_questions(
             q.code,
             q.statement,
             q.difficulty,
+            q.language,
             c.id AS concept_id,
             c.name AS concept_name,
             s.name AS subject_name,
@@ -247,6 +262,7 @@ pub async fn list_questions(
             code: row.code,
             statement: row.statement,
             difficulty: row.difficulty,
+            language: row.language,
             concept_id: row.concept_id,
             concept_name: row.concept_name,
             subject_name: row.subject_name,
@@ -273,6 +289,7 @@ pub async fn get_question(
             q.code,
             q.statement,
             q.difficulty,
+            q.language,
             c.id AS concept_id,
             c.name AS concept_name,
             s.name AS subject_name,
@@ -307,6 +324,18 @@ pub async fn get_question(
     .await?
     .ok_or_else(|| AppError::NotFound("Questão não encontrada.".to_string()))?;
 
+    let assets = sqlx::query_as::<_, QuestionAssetDto>(
+        r#"
+        SELECT kind, option_label, url, position
+        FROM question_assets
+        WHERE question_id = $1
+        ORDER BY position, id
+        "#,
+    )
+    .bind(question_id)
+    .fetch_all(&state.pool)
+    .await?;
+
     Ok(Json(QuestionResponse {
         question: QuestionDetail {
             id: row.id,
@@ -316,25 +345,32 @@ pub async fn get_question(
                 OptionDto {
                     label: "A".to_string(),
                     text: row.option_a,
+                    image_url: option_image(&assets, "A"),
                 },
                 OptionDto {
                     label: "B".to_string(),
                     text: row.option_b,
+                    image_url: option_image(&assets, "B"),
                 },
                 OptionDto {
                     label: "C".to_string(),
                     text: row.option_c,
+                    image_url: option_image(&assets, "C"),
                 },
                 OptionDto {
                     label: "D".to_string(),
                     text: row.option_d,
+                    image_url: option_image(&assets, "D"),
                 },
                 OptionDto {
                     label: "E".to_string(),
                     text: row.option_e,
+                    image_url: option_image(&assets, "E"),
                 },
             ],
             difficulty: row.difficulty,
+            language: row.language,
+            assets,
             concept_id: row.concept_id,
             concept_name: row.concept_name,
             subject_name: row.subject_name,
@@ -345,6 +381,13 @@ pub async fn get_question(
             last_attempt_is_correct: row.last_attempt_is_correct,
         },
     }))
+}
+
+fn option_image(assets: &[QuestionAssetDto], label: &str) -> Option<String> {
+    assets
+        .iter()
+        .find(|asset| asset.kind == "alternative" && asset.option_label.as_deref() == Some(label))
+        .map(|asset| asset.url.clone())
 }
 
 pub async fn create_attempt(
