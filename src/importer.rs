@@ -452,9 +452,9 @@ fn build_statement(question: &ApiQuestion) -> String {
     }
 
     if let Some(intro) = &question.alternatives_introduction {
-        let trimmed = intro.trim();
+        let trimmed = clean_markdown_text(intro);
         if !trimmed.is_empty() {
-            parts.push(trimmed.to_string());
+            parts.push(trimmed);
         }
     }
 
@@ -467,11 +467,11 @@ fn build_statement(question: &ApiQuestion) -> String {
 
 fn clean_context(context: &str) -> String {
     let without_images = remove_markdown_images(context);
-    without_images
-        .replace("\\[", "[")
-        .replace("\\]", "]")
-        .trim()
-        .to_string()
+    clean_markdown_text(&without_images.replace("\\[", "[").replace("\\]", "]"))
+}
+
+fn clean_markdown_text(input: &str) -> String {
+    input.replace("**", "").replace("__", "").trim().to_string()
 }
 
 fn remove_markdown_images(input: &str) -> String {
@@ -517,9 +517,8 @@ fn option_text(alternative: &ApiAlternative) -> String {
     alternative
         .text
         .as_deref()
-        .map(str::trim)
+        .map(clean_markdown_text)
         .filter(|text| !text.is_empty())
-        .map(ToString::to_string)
         .or_else(|| {
             alternative
                 .file
@@ -557,6 +556,11 @@ mod tests {
     fn removes_markdown_images() {
         let context = "Texto antes\n![](https://example.com/a.png)\nTexto depois";
         assert_eq!(clean_context(context), "Texto antes\n\nTexto depois");
+    }
+
+    #[test]
+    fn removes_bold_markers() {
+        assert_eq!(clean_context("**TEXTO I**\nConteúdo"), "TEXTO I\nConteúdo");
     }
 
     #[test]
