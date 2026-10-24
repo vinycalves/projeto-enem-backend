@@ -13,6 +13,7 @@ O projeto é open source, sem anúncios, sem IA e sem cobrança. O conteúdo ini
 - **Discussão da questão após a tentativa**: comentários gerais ou por alternativa.
 - Gabarito e explicação só são liberados depois de uma tentativa (endpoint protegido).
 - **Importador de questões oficiais** do ENEM (2009–2023) via API do enem.dev, com imagens, idioma, fonte e licença.
+- **Separação entre conceitos e provas**: o currículo expõe conceitos; o arquivo oficial é exposto em `/exams` e oculto da lista de disciplinas.
 - Estatísticas básicas do estudante e últimos estudos.
 - Calendário oficial do ENEM 2026, com datas confirmadas e itens "a definir".
 - Endpoint de doação Pix; a chave fica apenas em variável de ambiente do backend.
@@ -144,6 +145,7 @@ Base: `/api/v1`
 | `POST` | `/comments/{id}/report` | Denúncia de comentário |
 | `GET` | `/questions/{id}/answer` | Gabarito e explicação (exige tentativa) |
 | `GET` | `/me/stats` | Estatísticas e últimos estudos |
+| `GET` | `/exams` | Provas oficiais por área e ano |
 | `GET` | `/enem/calendar` | Calendário oficial do ENEM |
 | `GET` | `/support/pix` | Chave Pix, se configurada |
 
@@ -167,6 +169,7 @@ src/
   config.rs        # configuração por ambiente
   curriculum.rs    # áreas, disciplinas e conceitos
   error.rs         # erros HTTP
+  exams.rs         # provas oficiais separadas dos conceitos
   importer.rs      # importação idempotente via enem.dev
   questions.rs     # questões, tentativas, discussão, resposta e estatísticas
   support.rs       # Pix
