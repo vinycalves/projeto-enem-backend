@@ -426,3 +426,61 @@ async fn curriculum_is_seeded(pool: PgPool) {
         .expect("área de matemática ausente");
     assert_eq!(math["subjects"][0]["concept_count"], 3);
 }
+
+#[sqlx::test(migrations = "./migrations")]
+async fn question_assets_and_language_are_returned(pool: PgPool) {
+    let app = test_app(pool.clone(), None);
+    let (_, cookie) = register(&app).await;
+    let concept_id: Uuid =
+        sqlx::query_scalar("SELECT id FROM concepts WHERE code = 'mat.funcao-afim'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let question_id = Uuid::now_v7();
+
+    sqlx::query(
+        r#"
+        INSERT INTO questions (
+            id, concept_id, code, statement, option_a, option_b, option_c,
+            option_d, option_e, correct_option, explanation, difficulty,
+            source, license, language
+        )
+        VALUES ($1, $2, 'TEST-ASSET-001', 'Questão com imagem', 'A', 'B', 'C', 'D', 'E',
+                'A', 'Explicação', 'medio', 'Teste', 'CC BY-SA 4.0', 'ingles')
+        "#,
+    )
+    .bind(question_id)
+    .bind(concept_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        r#"
+        INSERT INTO question_assets (id, question_id, kind, option_label, url, position)
+        VALUES ($1, $2, 'alternative', 'A', 'https://example.com/a.png', 0)
+        "#,
+    )
+    .bind(Uuid::now_v7())
+    .bind(question_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let (status, body, _) = request(
+        &app,
+        Method::GET,
+        &format!("/api/v1/questions/{question_id}"),
+        None,
+        Some(&cookie),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["question"]["language"], "ingles");
+    assert_eq!(
+        body["question"]["options"][0]["image_url"],
+        "https://example.com/a.png"
+    );
+    assert_eq!(body["question"]["assets"][0]["kind"], "alternative");
+}
