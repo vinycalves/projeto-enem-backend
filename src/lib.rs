@@ -4,19 +4,28 @@ pub mod config;
 pub mod curriculum;
 pub mod error;
 pub mod exams;
+pub mod geo;
+pub mod health;
 pub mod importer;
+pub mod molecules;
+pub mod openapi;
 pub mod questions;
 pub mod state;
+pub mod subjects;
 pub mod support;
+pub mod topics;
 pub mod validation;
+pub mod visualizations;
 
 use axum::{
     Json, Router,
     http::{HeaderValue, Method, header},
     routing::{get, post},
 };
-use serde_json::json;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{
+    compression::CompressionLayer, cors::CorsLayer, set_header::SetResponseHeaderLayer,
+    trace::TraceLayer,
+};
 
 use crate::state::AppState;
 
@@ -33,8 +42,31 @@ pub fn app(state: AppState) -> Router {
         .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::OPTIONS])
         .allow_headers([header::CONTENT_TYPE, header::ACCEPT]);
 
+    let public_routes = Router::new()
+        .route("/api/v1/subjects", get(subjects::list_subjects))
+        .route(
+            "/api/v1/visualizations",
+            get(visualizations::list_visualizations),
+        )
+        .route(
+            "/api/v1/visualizations/{slug}",
+            get(visualizations::get_visualization),
+        )
+        .route("/api/v1/enem/topics", get(topics::list_topics))
+        .route("/api/v1/molecules/{slug}", get(molecules::get_molecule))
+        .route("/api/v1/geo/layers/{layer}", get(geo::get_geo_layer))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("public, max-age=60"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            header::ETAG,
+            HeaderValue::from_static("W/\"visualizations-v1\""),
+        ));
+
     Router::new()
-        .route("/api/v1/health", get(health))
+        .route("/api/v1/health", get(health::health))
+        .route("/api-docs/openapi.json", get(openapi_json))
         .route("/api/v1/auth/register", post(auth::register))
         .route("/api/v1/auth/login", post(auth::login))
         .route("/api/v1/auth/logout", post(auth::logout))
@@ -71,11 +103,13 @@ pub fn app(state: AppState) -> Router {
         .route("/api/v1/exams", get(exams::list_exams))
         .route("/api/v1/enem/calendar", get(calendar::list_events))
         .route("/api/v1/support/pix", get(support::pix))
+        .merge(public_routes)
         .layer(cors)
         .layer(TraceLayer::new_for_http())
+        .layer(CompressionLayer::new())
         .with_state(state)
 }
 
-async fn health() -> Json<serde_json::Value> {
-    Json(json!({ "status": "ok" }))
+async fn openapi_json() -> Json<utoipa::openapi::OpenApi> {
+    Json(openapi::openapi())
 }

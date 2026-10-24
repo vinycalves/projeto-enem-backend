@@ -559,3 +559,85 @@ async fn official_exams_are_separate_from_curriculum_concepts(pool: PgPool) {
         .any(|subject| subject["code"] == "oficial-linguagens");
     assert!(!has_official_subject);
 }
+
+#[sqlx::test(migrations = "./migrations")]
+async fn visualization_catalog_is_seeded_and_filterable(pool: PgPool) {
+    let app = test_app(pool, None);
+
+    let (status, body, _) = request(&app, Method::GET, "/api/v1/subjects", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["subjects"].as_array().unwrap().len(), 4);
+
+    let (status, body, _) = request(&app, Method::GET, "/api/v1/visualizations", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["total"], 2);
+    assert_eq!(body["items"].as_array().unwrap().len(), 2);
+
+    let (status, body, _) = request(
+        &app,
+        Method::GET,
+        "/api/v1/visualizations?subject=fisica&dimension=2d",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["total"], 1);
+    assert_eq!(body["items"][0]["slug"], "lancamento-obliquo");
+
+    let (status, body, _) = request(
+        &app,
+        Method::GET,
+        "/api/v1/visualizations/lancamento-obliquo",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["visualization"]["component_key"], "projectile-2d");
+    assert_eq!(body["visualization"]["params"].as_array().unwrap().len(), 5);
+    assert_eq!(
+        body["visualization"]["topics"][0]["slug"],
+        "lancamento-obliquo"
+    );
+
+    let (status, _, _) = request(
+        &app,
+        Method::GET,
+        "/api/v1/visualizations/nao-existe",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn topics_molecules_geo_and_openapi_are_available(pool: PgPool) {
+    let app = test_app(pool, None);
+
+    let (status, body, _) = request(&app, Method::GET, "/api/v1/enem/topics", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["subjects"].as_array().unwrap().len(), 4);
+    assert!(body["subjects"][0]["topics"].as_array().unwrap().len() >= 2);
+
+    let (status, body, _) = request(&app, Method::GET, "/api/v1/molecules/agua", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["molecule"]["formula"], "H2O");
+    assert_eq!(body["molecule"]["atoms"].as_array().unwrap().len(), 3);
+
+    let (status, _, _) = request(
+        &app,
+        Method::GET,
+        "/api/v1/geo/layers/nao-existe",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    let (status, body, _) = request(&app, Method::GET, "/api-docs/openapi.json", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body["paths"]["/api/v1/visualizations"].is_object());
+    assert!(body["paths"]["/api/v1/molecules/{slug}"].is_object());
+}

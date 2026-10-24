@@ -16,6 +16,7 @@ sqlx = { version = "0.9.0", features = [
     "postgres",
     "uuid",
     "chrono",
+    "json",
     "migrate",
     "macros",
 ] }
@@ -27,13 +28,19 @@ sha2 = "0.10.9"
 hex = "0.4.3"
 uuid = { version = "1.18", features = ["v7", "serde"] }
 chrono = { version = "0.4.42", features = ["serde"] }
-tower-http = { version = "0.7.1", features = ["cors", "trace"] }
+tower-http = { version = "0.7.1", features = [
+    "compression-gzip",
+    "cors",
+    "set-header",
+    "trace",
+] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 dotenvy = "0.15.7"
 thiserror = "2.0.17"
 reqwest = { version = "0.12.24", default-features = false, features = ["json", "rustls-tls"] }
 clap = { version = "4.5.48", features = ["derive"] }
+utoipa = { version = "6.0.0", features = ["axum_extras", "uuid", "chrono"] }
 
 [dev-dependencies]
 tower = { version = "0.5.2", features = ["util"] }
