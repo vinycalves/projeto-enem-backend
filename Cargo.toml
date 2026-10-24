@@ -2,6 +2,7 @@
 name = "enem-backend"
 version = "0.1.0"
 edition = "2024"
+default-run = "enem-backend"
 license = "MIT"
 description = "API gratuita de estudos para o ENEM"
 repository = "https://github.com/vinycius/projeto-enem-backend"
@@ -31,6 +32,8 @@ tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 dotenvy = "0.15.7"
 thiserror = "2.0.17"
+reqwest = { version = "0.12.24", default-features = false, features = ["json", "rustls-tls"] }
+clap = { version = "4.5.48", features = ["derive"] }
 
 [dev-dependencies]
 tower = { version = "0.5.2", features = ["util"] }

@@ -3,6 +3,7 @@ pub mod calendar;
 pub mod config;
 pub mod curriculum;
 pub mod error;
+pub mod importer;
 pub mod questions;
 pub mod state;
 pub mod support;
