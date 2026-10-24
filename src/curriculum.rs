@@ -98,6 +98,7 @@ pub async fn list_areas(State(state): State<AppState>) -> Result<Json<AreasRespo
             s.description,
             (SELECT count(*) FROM concepts c WHERE c.subject_id = s.id) AS concept_count
         FROM subjects s
+        WHERE s.code NOT LIKE 'oficial-%'
         ORDER BY s.sort_order, s.name
         "#,
     )

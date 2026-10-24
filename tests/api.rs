@@ -484,3 +484,78 @@ async fn question_assets_and_language_are_returned(pool: PgPool) {
     );
     assert_eq!(body["question"]["assets"][0]["kind"], "alternative");
 }
+
+#[sqlx::test(migrations = "./migrations")]
+async fn official_exams_are_separate_from_curriculum_concepts(pool: PgPool) {
+    let app = test_app(pool.clone(), None);
+    let area_id: Uuid = sqlx::query_scalar("SELECT id FROM areas WHERE code = 'linguagens'")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let subject_id = Uuid::now_v7();
+    let concept_id = Uuid::now_v7();
+
+    sqlx::query(
+        r#"
+        INSERT INTO subjects (id, area_id, code, name, description, sort_order)
+        VALUES ($1, $2, 'oficial-linguagens', 'Questões oficiais — Linguagens',
+                'Provas oficiais', 100)
+        "#,
+    )
+    .bind(subject_id)
+    .bind(area_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        r#"
+        INSERT INTO concepts (id, subject_id, code, name, summary, explanation, difficulty, sort_order)
+        VALUES ($1, $2, 'oficial-linguagens-2023', 'ENEM 2023',
+                'Prova oficial', 'Prova oficial', 'medio', 2023)
+        "#,
+    )
+    .bind(concept_id)
+    .bind(subject_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    sqlx::query(
+        r#"
+        INSERT INTO questions (
+            id, concept_id, code, statement, option_a, option_b, option_c,
+            option_d, option_e, correct_option, explanation, difficulty,
+            source, license, year, language, external_id
+        )
+        VALUES ($1, $2, 'TEST-EXAM-001', 'Questão de prova', 'A', 'B', 'C', 'D', 'E',
+                'A', 'Explicação', 'medio', 'INEP', 'Público', 2023, 'ingles',
+                'test:2023:1:ingles')
+        "#,
+    )
+    .bind(Uuid::now_v7())
+    .bind(concept_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let (status, body, _) = request(&app, Method::GET, "/api/v1/exams", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    let exams = body["exams"].as_array().unwrap();
+    assert_eq!(exams.len(), 1);
+    assert_eq!(exams[0]["title"], "ENEM 2023");
+    assert_eq!(exams[0]["year"], 2023);
+    assert_eq!(exams[0]["question_count"], 1);
+    assert_eq!(exams[0]["area_code"], "linguagens");
+
+    let (status, body, _) =
+        request(&app, Method::GET, "/api/v1/curriculum/areas", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    let has_official_subject = body["areas"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|area| area["subjects"].as_array().unwrap())
+        .any(|subject| subject["code"] == "oficial-linguagens");
+    assert!(!has_official_subject);
+}

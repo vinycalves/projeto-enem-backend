@@ -3,6 +3,7 @@ pub mod calendar;
 pub mod config;
 pub mod curriculum;
 pub mod error;
+pub mod exams;
 pub mod importer;
 pub mod questions;
 pub mod state;
@@ -67,6 +68,7 @@ pub fn app(state: AppState) -> Router {
             post(questions::report_comment),
         )
         .route("/api/v1/me/stats", get(questions::my_stats))
+        .route("/api/v1/exams", get(exams::list_exams))
         .route("/api/v1/enem/calendar", get(calendar::list_events))
         .route("/api/v1/support/pix", get(support::pix))
         .layer(cors)
