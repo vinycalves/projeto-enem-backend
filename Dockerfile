@@ -11,6 +11,7 @@ WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 COPY migrations ./migrations
+COPY seeds ./seeds
 
 RUN cargo build --release
 

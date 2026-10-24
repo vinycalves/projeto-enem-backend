@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod calendar;
+pub mod chemistry;
 pub mod config;
 pub mod curriculum;
 pub mod error;
@@ -53,6 +54,14 @@ pub fn app(state: AppState) -> Router {
             get(visualizations::get_visualization),
         )
         .route("/api/v1/enem/topics", get(topics::list_topics))
+        .route(
+            "/api/v1/chemistry/reactions/{id}",
+            get(chemistry::get_reaction),
+        )
+        .route(
+            "/api/v1/chemistry/datasets/{name}",
+            get(chemistry::get_dataset),
+        )
         .route("/api/v1/molecules/{slug}", get(molecules::get_molecule))
         .route("/api/v1/geo/layers/{layer}", get(geo::get_geo_layer))
         .layer(SetResponseHeaderLayer::overriding(

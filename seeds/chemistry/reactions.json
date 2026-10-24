@@ -1,0 +1,203 @@
+[
+  {
+    "id": "methane-combustion",
+    "name": "Combustão completa do metano",
+    "classification": "Combustão completa",
+    "equation": "CH4 + 2O2 -> CO2 + 2H2O",
+    "species": [
+      {
+        "side": "reactant",
+        "formula": "CH4",
+        "name": "Metano",
+        "state": "g",
+        "coefficient": 1,
+        "charge": 0,
+        "atoms": [
+          { "id": "CH4:C1", "element": "C" },
+          { "id": "CH4:H1", "element": "H" },
+          { "id": "CH4:H2", "element": "H" },
+          { "id": "CH4:H3", "element": "H" },
+          { "id": "CH4:H4", "element": "H" }
+        ]
+      },
+      {
+        "side": "reactant",
+        "formula": "O2",
+        "name": "Oxigênio",
+        "state": "g",
+        "coefficient": 2,
+        "charge": 0,
+        "atoms": [
+          { "id": "O2:O1", "element": "O" },
+          { "id": "O2:O2", "element": "O" },
+          { "id": "O2:O3", "element": "O" },
+          { "id": "O2:O4", "element": "O" }
+        ]
+      },
+      {
+        "side": "product",
+        "formula": "CO2",
+        "name": "Dióxido de carbono",
+        "state": "g",
+        "coefficient": 1,
+        "charge": 0,
+        "atoms": [
+          { "id": "CO2:C1", "element": "C" },
+          { "id": "CO2:O1", "element": "O" },
+          { "id": "CO2:O2", "element": "O" }
+        ]
+      },
+      {
+        "side": "product",
+        "formula": "H2O",
+        "name": "Água",
+        "state": "l",
+        "coefficient": 2,
+        "charge": 0,
+        "atoms": [
+          { "id": "H2O:H1", "element": "H" },
+          { "id": "H2O:H2", "element": "H" },
+          { "id": "H2O:H3", "element": "H" },
+          { "id": "H2O:H4", "element": "H" },
+          { "id": "H2O:O1", "element": "O" },
+          { "id": "H2O:O2", "element": "O" }
+        ]
+      }
+    ],
+    "atomMapping": [
+      { "from": "CH4:C1", "to": "CO2:C1" },
+      { "from": "CH4:H1", "to": "H2O:H1" },
+      { "from": "CH4:H2", "to": "H2O:H2" },
+      { "from": "CH4:H3", "to": "H2O:H3" },
+      { "from": "CH4:H4", "to": "H2O:H4" },
+      { "from": "O2:O1", "to": "CO2:O1" },
+      { "from": "O2:O2", "to": "CO2:O2" },
+      { "from": "O2:O3", "to": "H2O:O1" },
+      { "from": "O2:O4", "to": "H2O:O2" }
+    ],
+    "stages": [
+      {
+        "id": "reactants",
+        "from": 0,
+        "to": 0.28,
+        "legend": "Reagentes: CH₄ e O₂. As ligações ainda não foram rearranjadas.",
+        "breakingBonds": [],
+        "formingBonds": []
+      },
+      {
+        "id": "rearrangement",
+        "from": 0.28,
+        "to": 0.72,
+        "legend": "Etapa didática de rearranjo: os átomos são redistribuídos para formar CO₂ e H₂O. O mecanismo radicalar real não é representado.",
+        "breakingBonds": ["C-H", "O=O"],
+        "formingBonds": ["C=O", "O-H"]
+      },
+      {
+        "id": "products",
+        "from": 0.72,
+        "to": 1,
+        "legend": "Produtos: CO₂(g) e 2 H₂O(l). A combustão completa libera cerca de 890 kJ por mol de metano.",
+        "breakingBonds": [],
+        "formingBonds": []
+      }
+    ],
+    "thermodynamics": {
+      "deltaHKjMol": -890.3,
+      "conditions": "298,15 K; 1 bar; água no estado líquido",
+      "source": "NIST-JANAF Thermochemical Tables, 4th ed. (1998); NIST Chemistry WebBook"
+    },
+    "enemTopics": ["termoquimica", "combustao", "estequiometria"],
+    "didacticNote": "A animação é uma sequência didática entre reagentes e produtos; não pretende representar o mecanismo real.",
+    "sources": [
+      "NIST Chemistry WebBook, Methane (CID 74828), https://webbook.nist.gov/cgi/cbook.cgi?ID=C74828",
+      "NIST-JANAF Thermochemical Tables, 4th ed. (1998)",
+      "IUPAC. Quantities, Units and Symbols in Physical Chemistry, 3rd ed."
+    ]
+  },
+  {
+    "id": "n2o4-no2-equilibrium",
+    "name": "Dissociação do N₂O₄",
+    "classification": "Equilíbrio químico",
+    "equation": "N2O4 <=> 2NO2",
+    "species": [
+      {
+        "side": "reactant",
+        "formula": "N2O4",
+        "name": "Tetraóxido de dinitrogênio",
+        "state": "g",
+        "coefficient": 1,
+        "charge": 0,
+        "atoms": [
+          { "id": "N2O4:N1", "element": "N" },
+          { "id": "N2O4:N2", "element": "N" },
+          { "id": "N2O4:O1", "element": "O" },
+          { "id": "N2O4:O2", "element": "O" },
+          { "id": "N2O4:O3", "element": "O" },
+          { "id": "N2O4:O4", "element": "O" }
+        ]
+      },
+      {
+        "side": "product",
+        "formula": "NO2",
+        "name": "Dióxido de nitrogênio",
+        "state": "g",
+        "coefficient": 2,
+        "charge": 0,
+        "atoms": [
+          { "id": "NO2:N1", "element": "N" },
+          { "id": "NO2:N2", "element": "N" },
+          { "id": "NO2:O1", "element": "O" },
+          { "id": "NO2:O2", "element": "O" },
+          { "id": "NO2:O3", "element": "O" },
+          { "id": "NO2:O4", "element": "O" }
+        ]
+      }
+    ],
+    "atomMapping": [
+      { "from": "N2O4:N1", "to": "NO2:N1" },
+      { "from": "N2O4:N2", "to": "NO2:N2" },
+      { "from": "N2O4:O1", "to": "NO2:O1" },
+      { "from": "N2O4:O2", "to": "NO2:O2" },
+      { "from": "N2O4:O3", "to": "NO2:O3" },
+      { "from": "N2O4:O4", "to": "NO2:O4" }
+    ],
+    "stages": [
+      {
+        "id": "reactant",
+        "from": 0,
+        "to": 0.4,
+        "legend": "N₂O₄ gasoso. A ligação N-N pode se romper em uma etapa didática.",
+        "breakingBonds": [],
+        "formingBonds": []
+      },
+      {
+        "id": "dissociation",
+        "from": 0.4,
+        "to": 0.75,
+        "legend": "Dissociação didática em duas moléculas de NO₂; o mecanismo elementar não é representado.",
+        "breakingBonds": ["N-N"],
+        "formingBonds": []
+      },
+      {
+        "id": "products",
+        "from": 0.75,
+        "to": 1,
+        "legend": "2 NO₂. Em recipiente fechado, as duas espécies coexistem no equilíbrio.",
+        "breakingBonds": [],
+        "formingBonds": []
+      }
+    ],
+    "thermodynamics": {
+      "deltaHKjMol": 57.2,
+      "conditions": "298,15 K; 1 bar; reação endotérmica no sentido da dissociação",
+      "source": "NIST-JANAF Thermochemical Tables; Atkins & de Paula, Physical Chemistry, 10th ed."
+    },
+    "enemTopics": ["equilibrio-quimico", "n2o4-no2"],
+    "didacticNote": "A constante Kc usada na simulação é 5,9 × 10⁻³ a 298 K; a etapa visual é apenas uma sequência didática.",
+    "sources": [
+      "Atkins & de Paula, Physical Chemistry, 10th ed. (Kc ≈ 5,9 × 10⁻³ a 298 K)",
+      "NIST-JANAF Thermochemical Tables, 4th ed. (1998)",
+      "IUPAC. Quantities, Units and Symbols in Physical Chemistry, 3rd ed."
+    ]
+  }
+]

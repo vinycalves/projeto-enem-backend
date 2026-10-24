@@ -32,6 +32,17 @@ pub struct VisualizationSummary {
     pub title: String,
     pub summary: String,
     pub difficulty: String,
+    pub model_kind: String,
+    pub tier: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct VisualizationQuizQuestion {
+    pub question: String,
+    pub options: Vec<String>,
+    pub correct_index: usize,
+    pub explanation: String,
 }
 
 #[derive(Debug, Serialize, ToSchema, sqlx::FromRow)]
@@ -56,6 +67,12 @@ pub struct VisualizationDetail {
     pub common_mistakes: Vec<String>,
     pub sources: Vec<String>,
     pub component_key: String,
+    pub model_kind: String,
+    pub dimension_rationale: String,
+    pub tier: String,
+    pub simplifications: Vec<String>,
+    pub enem_notes: Vec<String>,
+    pub quiz: Vec<VisualizationQuizQuestion>,
     pub topics: Vec<VisualizationTopicDto>,
 }
 
@@ -100,6 +117,12 @@ struct VisualizationDetailRow {
     common_mistakes: serde_json::Value,
     sources: serde_json::Value,
     component_key: String,
+    model_kind: String,
+    dimension_rationale: String,
+    tier: String,
+    simplifications: serde_json::Value,
+    enem_notes: serde_json::Value,
+    quiz: serde_json::Value,
 }
 
 #[utoipa::path(
@@ -152,7 +175,9 @@ pub async fn list_visualizations(
             v.dimension,
             v.title,
             v.summary,
-            v.difficulty
+            v.difficulty,
+            v.model_kind,
+            v.tier
         FROM visualizations v
         JOIN subjects s ON s.code = v.subject_code
         WHERE v.published = true
@@ -216,7 +241,13 @@ pub async fn get_visualization(
             v.params,
             v.common_mistakes,
             v.sources,
-            v.component_key
+            v.component_key,
+            v.model_kind,
+            v.dimension_rationale,
+            v.tier,
+            v.simplifications,
+            v.enem_notes,
+            v.quiz
         FROM visualizations v
         JOIN subjects s ON s.code = v.subject_code
         WHERE v.slug = $1 AND v.published = true
@@ -255,6 +286,12 @@ pub async fn get_visualization(
             common_mistakes: parse_json(row.common_mistakes)?,
             sources: parse_json(row.sources)?,
             component_key: row.component_key,
+            model_kind: row.model_kind,
+            dimension_rationale: row.dimension_rationale,
+            tier: row.tier,
+            simplifications: parse_json(row.simplifications)?,
+            enem_notes: parse_json(row.enem_notes)?,
+            quiz: parse_json(row.quiz)?,
             topics,
         },
     }))

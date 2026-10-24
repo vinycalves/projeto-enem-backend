@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use enem_backend::{app, config::Config, state::AppState};
+use enem_backend::{app, chemistry, config::Config, state::AppState};
 use sqlx::postgres::PgPoolOptions;
 use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -26,6 +26,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     sqlx::migrate!("./migrations").run(&pool).await?;
     tracing::info!("migrações aplicadas");
+
+    chemistry::sync_seeds(&pool).await?;
+    tracing::info!("seeds de química validados e sincronizados");
 
     let state = AppState {
         pool,

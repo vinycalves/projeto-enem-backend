@@ -570,8 +570,8 @@ async fn visualization_catalog_is_seeded_and_filterable(pool: PgPool) {
 
     let (status, body, _) = request(&app, Method::GET, "/api/v1/visualizations", None, None).await;
     assert_eq!(status, StatusCode::OK);
-    assert_eq!(body["total"], 2);
-    assert_eq!(body["items"].as_array().unwrap().len(), 2);
+    assert_eq!(body["total"], 5);
+    assert_eq!(body["items"].as_array().unwrap().len(), 5);
 
     let (status, body, _) = request(
         &app,
@@ -640,4 +640,51 @@ async fn topics_molecules_geo_and_openapi_are_available(pool: PgPool) {
     assert_eq!(status, StatusCode::OK);
     assert!(body["paths"]["/api/v1/visualizations"].is_object());
     assert!(body["paths"]["/api/v1/molecules/{slug}"].is_object());
+}
+
+#[sqlx::test(migrations = "./migrations")]
+async fn serves_chemistry_reaction_and_dataset(pool: PgPool) {
+    enem_backend::chemistry::sync_seeds(&pool)
+        .await
+        .expect("seeds de química devem sincronizar");
+
+    let app = test_app(pool, None);
+
+    let (status, body, _) = request(
+        &app,
+        Method::GET,
+        "/api/v1/chemistry/reactions/methane-combustion",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["reaction"]["id"], "methane-combustion");
+    assert_eq!(body["reaction"]["species"].as_array().unwrap().len(), 4);
+    assert_eq!(body["reaction"]["atomMapping"].as_array().unwrap().len(), 9);
+
+    let (status, body, _) = request(
+        &app,
+        Method::GET,
+        "/api/v1/chemistry/datasets/acid-base-constants",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["dataset"]["name"], "acid-base-constants");
+    assert_eq!(body["dataset"]["data"]["acids"][1]["ka"], 0.0000175);
+
+    let (status, body, _) = request(
+        &app,
+        Method::GET,
+        "/api/v1/visualizations/equilibrio-n2o4",
+        None,
+        None,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["visualization"]["model_kind"], "simulacao");
+    assert_eq!(body["visualization"]["tier"], "T1");
+    assert_eq!(body["visualization"]["quiz"].as_array().unwrap().len(), 2);
 }

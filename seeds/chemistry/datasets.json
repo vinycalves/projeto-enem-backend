@@ -1,0 +1,123 @@
+[
+  {
+    "name": "thermochemistry",
+    "description": "Entalpias padrão de formação e combustão usadas no recorte de termoquímica.",
+    "conditions": "298,15 K; 1 bar",
+    "sources": [
+      "NIST-JANAF Thermochemical Tables, 4th ed. (1998)",
+      "NIST Chemistry WebBook, https://webbook.nist.gov/"
+    ],
+    "data": {
+      "formationEnthalpiesKjMol": {
+        "CH4(g)": -74.87,
+        "CO2(g)": -393.51,
+        "H2O(l)": -285.83,
+        "O2(g)": 0.0
+      },
+      "methaneCombustion": {
+        "deltaHKjMol": -890.3,
+        "referenceState": "H2O(l)",
+        "note": "ΔH calculado a partir das entalpias de formação: [(-393,51) + 2(-285,83)] - (-74,87) = -890,30 kJ/mol."
+      }
+    }
+  },
+  {
+    "name": "acid-base-constants",
+    "description": "Constantes de equilíbrio ácido-base e faixas de viragem de indicadores a 25 °C.",
+    "conditions": "25 °C; soluções ideais",
+    "sources": [
+      "CRC Handbook of Chemistry and Physics, 84th ed. (2004), tabela de constantes de dissociação a 25 °C",
+      "IUPAC. Compendium of Chemical Terminology, 2nd ed. (Gold Book)"
+    ],
+    "data": {
+      "kw": 1.0e-14,
+      "temperatureK": 298.15,
+      "acids": [
+        {
+          "id": "hcl",
+          "formula": "HCl",
+          "name": "Ácido clorídrico",
+          "strength": "strong",
+          "ka": null,
+          "source": "Eletrólito forte; dissociação praticamente completa em solução aquosa.",
+          "equation": {
+            "reactants": [
+              { "formula": "HCl", "coefficient": 1, "state": "aq" },
+              { "formula": "NaOH", "coefficient": 1, "state": "aq" }
+            ],
+            "products": [
+              { "formula": "NaCl", "coefficient": 1, "state": "aq" },
+              { "formula": "H2O", "coefficient": 1, "state": "l" }
+            ]
+          }
+        },
+        {
+          "id": "acetic",
+          "formula": "CH3COOH",
+          "name": "Ácido acético",
+          "strength": "weak",
+          "ka": 1.75e-5,
+          "pka": 4.756,
+          "source": "CRC Handbook of Chemistry and Physics, 84th ed. (2004).",
+          "equation": {
+            "reactants": [
+              { "formula": "CH3COOH", "coefficient": 1, "state": "aq" },
+              { "formula": "NaOH", "coefficient": 1, "state": "aq" }
+            ],
+            "products": [
+              { "formula": "CH3COONa", "coefficient": 1, "state": "aq" },
+              { "formula": "H2O", "coefficient": 1, "state": "l" }
+            ]
+          }
+        }
+      ],
+      "indicators": [
+        {
+          "id": "phenolphthalein",
+          "name": "Fenolftaleína",
+          "lowPh": 8.2,
+          "highPh": 10.0,
+          "acidColor": "incolor",
+          "baseColor": "rosa",
+          "source": "CRC Handbook of Chemistry and Physics, faixa de viragem a 25 °C."
+        },
+        {
+          "id": "methyl-orange",
+          "name": "Alaranjado de metila",
+          "lowPh": 3.1,
+          "highPh": 4.4,
+          "acidColor": "vermelho",
+          "baseColor": "amarelo",
+          "source": "CRC Handbook of Chemistry and Physics, faixa de viragem a 25 °C."
+        },
+        {
+          "id": "bromothymol-blue",
+          "name": "Azul de bromotimol",
+          "lowPh": 6.0,
+          "highPh": 7.6,
+          "acidColor": "amarelo",
+          "baseColor": "azul",
+          "source": "CRC Handbook of Chemistry and Physics, faixa de viragem a 25 °C."
+        }
+      ]
+    }
+  },
+  {
+    "name": "equilibrium-constants",
+    "description": "Constante de equilíbrio e entalpia da dissociação do N₂O₄.",
+    "conditions": "298 K; solução ideal; volume constante",
+    "sources": [
+      "Atkins & de Paula, Physical Chemistry, 10th ed. (Kc ≈ 5,9 × 10⁻³ a 298 K)",
+      "NIST-JANAF Thermochemical Tables, 4th ed. (1998)"
+    ],
+    "data": {
+      "n2o4No2": {
+        "reaction": "N2O4(g) <=> 2NO2(g)",
+        "kc": 0.0059,
+        "temperatureK": 298,
+        "deltaHKjMol": 57.2,
+        "note": "Kc fornecido na fonte para 298 K; Kp pode ser obtido por Kp = Kc(RT)^Δn."
+      }
+    }
+  }
+]
