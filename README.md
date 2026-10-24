@@ -192,6 +192,10 @@ tests/
 - **Sem confirmação de e-mail.** O cadastro é imediato, conforme definido para esta versão.
 - **Sem pagamentos.** A doação é opcional e via Pix.
 
+## Currículo
+
+A taxonomia de trabalho, a estrutura das quatro áreas e a situação de cobertura estão em [`docs/curriculum.md`](docs/curriculum.md).
+
 ## Licença
 
-Código: MIT. Conteúdo autoral de exemplo: CC BY-SA 4.0.
+Código: MIT. Conteúdo autoral de exemplo: CC BY-SA 4.0. Questões oficiais: fonte e licença registradas por item; consulte a fonte original.
