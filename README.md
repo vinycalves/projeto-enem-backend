@@ -12,11 +12,12 @@ O projeto é open source, sem anúncios, sem IA e sem cobrança. O conteúdo ini
 - Questões com cinco alternativas, tentativa, correção e explicação.
 - **Discussão da questão após a tentativa**: comentários gerais ou por alternativa.
 - Gabarito e explicação só são liberados depois de uma tentativa (endpoint protegido).
+- **Importador de questões oficiais** do ENEM (2009–2023) via API do enem.dev, com imagens, idioma, fonte e licença.
 - Estatísticas básicas do estudante e últimos estudos.
 - Calendário oficial do ENEM 2026, com datas confirmadas e itens "a definir".
 - Endpoint de doação Pix; a chave fica apenas em variável de ambiente do backend.
 - Testes unitários e testes de integração com PostgreSQL real.
-- Dockerfile e Docker Compose para execução local.
+- Dockerfile e Docker Compose para execução local (Compose somente com PostgreSQL).
 
 ## Stack
 
@@ -56,6 +57,32 @@ As migrações são aplicadas automaticamente na inicialização.
 ### Imagens Docker
 
 Os Dockerfiles continuam no projeto para build independente das imagens de backend e frontend. O Compose **não** sobe esses serviços; ele é apenas o banco local.
+
+## Importar questões oficiais
+
+O binário `import-enem` baixa as provas disponíveis na API pública do [enem.dev](https://enem.dev) e grava no PostgreSQL de forma idempotente. Ele cria, por área e por ano, uma disciplina “Questões oficiais” e um conceito “ENEM {ano}”.
+
+```bash
+# importa 2009–2023
+cargo run --bin import-enem -- --from-year 2009 --to-year 2023
+
+# teste rápido, sem gravar
+cargo run --bin import-enem -- --from-year 2023 --to-year 2023 --limit 5 --dry-run
+
+# um ano específico
+cargo run --bin import-enem -- --from-year 2023 --to-year 2023
+```
+
+O importador:
+
+- usa `limit=50` e paginação, respeitando o limite da API;
+- tenta novamente em caso de `429`;
+- deduplica por `external_id`;
+- atualiza a questão e recria os assets em reimportações;
+- mantém `source` e `license` visíveis na questão;
+- registra imagens de contexto e de alternativas em `question_assets`.
+
+> **Fonte e direitos:** os dados são obtidos do enem.dev, que se descreve como projeto comunitário e declara os dados como públicos. O projeto mantém a atribuição e a fonte no banco. Antes de usar comercialmente ou em maior escala, confira os termos da fonte e dos direitos de textos/imagens de terceiros.
 
 ## Testes
 
@@ -140,14 +167,18 @@ src/
   config.rs        # configuração por ambiente
   curriculum.rs    # áreas, disciplinas e conceitos
   error.rs         # erros HTTP
+  importer.rs      # importação idempotente via enem.dev
   questions.rs     # questões, tentativas, discussão, resposta e estatísticas
   support.rs       # Pix
   validation.rs    # validação e normalização
   lib.rs           # router
   main.rs          # bootstrap
+  bin/import-enem.rs
 migrations/
   0001_initial.sql
   0002_seed.sql
+  0003_official_questions.sql
+  0004_external_id_constraint.sql
 tests/
   api.rs
 ```
