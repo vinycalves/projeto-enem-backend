@@ -49,7 +49,7 @@ cargo run
 - API local: `http://localhost:8081` (configurável em `BIND_ADDR`)
 - PostgreSQL: `localhost:5432`
 
-> A porta `8080` desta máquina pode estar ocupada por outro serviço. O `.env` de exemplo usa `8080`; neste repositório local usamos `8081` para evitar conflito. O frontend faz proxy para a porta definida no `proxy.conf.json`.
+> A porta `8080` desta máquina pode estar ocupada por outro serviço. O `.env` de exemplo usa `8081` para evitar conflito; o frontend faz proxy para a porta definida no `proxy.conf.json`. Em produção, o container usa `8080` internamente.
 
 As migrações são aplicadas automaticamente na inicialização.
 
