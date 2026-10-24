@@ -650,6 +650,19 @@ async fn serves_chemistry_reaction_and_dataset(pool: PgPool) {
 
     let app = test_app(pool, None);
 
+    let (status, body, _) =
+        request(&app, Method::GET, "/api/v1/chemistry/elements", None, None).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["elements"].as_array().unwrap().len(), 118);
+    let iron = body["elements"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|element| element["symbol"] == "Fe")
+        .expect("ferro deve estar no seed");
+    assert_eq!(iron["namePt"], "Ferro");
+    assert!(iron["atomicMass"].as_f64().unwrap() > 55.0);
+
     let (status, body, _) = request(
         &app,
         Method::GET,

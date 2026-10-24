@@ -13,6 +13,7 @@ use crate::{error::AppError, state::AppState};
 
 const REACTIONS_SEED: &str = include_str!("../seeds/chemistry/reactions.json");
 const DATASETS_SEED: &str = include_str!("../seeds/chemistry/datasets.json");
+const ELEMENTS_SEED: &str = include_str!("../seeds/chemistry/elements.json");
 
 #[derive(Debug, thiserror::Error)]
 pub enum SeedError {
@@ -22,6 +23,29 @@ pub enum SeedError {
     Json(#[from] serde_json::Error),
     #[error(transparent)]
     Db(#[from] sqlx::Error),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ElementSeed {
+    pub atomic_number: i32,
+    pub symbol: String,
+    pub name_pt: String,
+    pub atomic_mass: f64,
+    pub group_number: Option<i32>,
+    pub period: i32,
+    pub electronegativity: Option<f64>,
+    pub atomic_radius_pm: Option<f64>,
+    pub electron_configuration: String,
+    pub category: String,
+    pub standard_state: Option<String>,
+    pub cpk_hex: Option<String>,
+    pub sources: Vec<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ElementsResponse {
+    pub elements: Vec<ElementSeed>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -100,6 +124,23 @@ pub struct ChemistryReactionResponse {
     pub reaction: ReactionSeed,
 }
 
+#[derive(Debug, sqlx::FromRow)]
+struct ElementRow {
+    atomic_number: i32,
+    symbol: String,
+    name_pt: String,
+    atomic_mass: f64,
+    group_number: Option<i32>,
+    period: i32,
+    electronegativity: Option<f64>,
+    atomic_radius_pm: Option<f64>,
+    electron_configuration: String,
+    category: String,
+    standard_state: Option<String>,
+    cpk_hex: Option<String>,
+    sources: Value,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ChemistryDatasetResponse {
     pub dataset: ChemistryDatasetDto,
@@ -137,6 +178,57 @@ pub fn reaction_seeds() -> Result<Vec<ReactionSeed>, String> {
 pub fn dataset_seeds() -> Result<Vec<DatasetSeed>, String> {
     serde_json::from_str(DATASETS_SEED)
         .map_err(|error| format!("seed de datasets inválido: {error}"))
+}
+
+pub fn element_seeds() -> Result<Vec<ElementSeed>, String> {
+    serde_json::from_str(ELEMENTS_SEED)
+        .map_err(|error| format!("seed de elementos inválido: {error}"))
+}
+
+pub fn validate_elements(elements: &[ElementSeed]) -> Result<(), String> {
+    if elements.is_empty() {
+        return Err("seed de elementos vazio".to_string());
+    }
+    let mut numbers = HashSet::new();
+    let mut symbols = HashSet::new();
+    for element in elements {
+        if !(1..=118).contains(&element.atomic_number) {
+            return Err(format!(
+                "número atômico inválido: {}",
+                element.atomic_number
+            ));
+        }
+        if !numbers.insert(element.atomic_number) {
+            return Err(format!(
+                "número atômico duplicado: {}",
+                element.atomic_number
+            ));
+        }
+        if element.symbol.trim().is_empty() || element.name_pt.trim().is_empty() {
+            return Err(format!(
+                "elemento {} sem símbolo ou nome",
+                element.atomic_number
+            ));
+        }
+        if !symbols.insert(element.symbol.as_str()) {
+            return Err(format!("símbolo duplicado: {}", element.symbol));
+        }
+        if !element.atomic_mass.is_finite() || element.atomic_mass <= 0.0 {
+            return Err(format!("massa atômica inválida: {}", element.symbol));
+        }
+        if !(1..=7).contains(&element.period) {
+            return Err(format!("período inválido: {}", element.symbol));
+        }
+        if let Some(group) = element.group_number
+            && !(1..=18).contains(&group)
+        {
+            return Err(format!("grupo inválido: {}", element.symbol));
+        }
+        if element.sources.is_empty() {
+            return Err(format!("elemento {} sem fontes", element.symbol));
+        }
+    }
+    Ok(())
 }
 
 pub fn validate_reaction(reaction: &ReactionSeed) -> Result<(), String> {
@@ -370,6 +462,51 @@ pub fn validate_dataset(dataset: &DatasetSeed) -> Result<(), String> {
 }
 
 pub async fn sync_seeds(pool: &PgPool) -> Result<(), SeedError> {
+    let elements = element_seeds().map_err(SeedError::Invalid)?;
+    validate_elements(&elements).map_err(SeedError::Invalid)?;
+    for element in &elements {
+        let sources = serde_json::to_value(&element.sources)?;
+        sqlx::query(
+            r#"
+            INSERT INTO chemistry_elements (
+                atomic_number, symbol, name_pt, atomic_mass, group_number, period,
+                electronegativity, atomic_radius_pm, electron_configuration, category,
+                standard_state, cpk_hex, sources
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            ON CONFLICT (atomic_number) DO UPDATE SET
+                symbol = EXCLUDED.symbol,
+                name_pt = EXCLUDED.name_pt,
+                atomic_mass = EXCLUDED.atomic_mass,
+                group_number = EXCLUDED.group_number,
+                period = EXCLUDED.period,
+                electronegativity = EXCLUDED.electronegativity,
+                atomic_radius_pm = EXCLUDED.atomic_radius_pm,
+                electron_configuration = EXCLUDED.electron_configuration,
+                category = EXCLUDED.category,
+                standard_state = EXCLUDED.standard_state,
+                cpk_hex = EXCLUDED.cpk_hex,
+                sources = EXCLUDED.sources,
+                updated_at = now()
+            "#,
+        )
+        .bind(element.atomic_number)
+        .bind(&element.symbol)
+        .bind(&element.name_pt)
+        .bind(element.atomic_mass)
+        .bind(element.group_number)
+        .bind(element.period)
+        .bind(element.electronegativity)
+        .bind(element.atomic_radius_pm)
+        .bind(&element.electron_configuration)
+        .bind(&element.category)
+        .bind(&element.standard_state)
+        .bind(&element.cpk_hex)
+        .bind(sources)
+        .execute(pool)
+        .await?;
+    }
+
     let reactions = reaction_seeds().map_err(SeedError::Invalid)?;
     let mut reaction_ids = HashSet::new();
     for reaction in &reactions {
@@ -435,6 +572,54 @@ pub async fn sync_seeds(pool: &PgPool) -> Result<(), SeedError> {
     }
 
     Ok(())
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/chemistry/elements",
+    responses((status = 200, body = ElementsResponse))
+)]
+pub async fn get_elements(
+    State(state): State<AppState>,
+) -> Result<Json<ElementsResponse>, AppError> {
+    let rows = sqlx::query_as::<_, ElementRow>(
+        r#"
+        SELECT atomic_number, symbol, name_pt, atomic_mass, group_number, period,
+               electronegativity, atomic_radius_pm, electron_configuration, category,
+               standard_state, cpk_hex, sources
+        FROM chemistry_elements
+        ORDER BY atomic_number
+        "#,
+    )
+    .fetch_all(&state.pool)
+    .await?;
+
+    let elements = rows
+        .into_iter()
+        .map(|row| {
+            let sources: Vec<String> = serde_json::from_value(row.sources).map_err(|error| {
+                tracing::error!(%error, "fontes inválidas em elemento químico");
+                AppError::Internal
+            })?;
+            Ok(ElementSeed {
+                atomic_number: row.atomic_number,
+                symbol: row.symbol,
+                name_pt: row.name_pt,
+                atomic_mass: row.atomic_mass,
+                group_number: row.group_number,
+                period: row.period,
+                electronegativity: row.electronegativity,
+                atomic_radius_pm: row.atomic_radius_pm,
+                electron_configuration: row.electron_configuration,
+                category: row.category,
+                standard_state: row.standard_state,
+                cpk_hex: row.cpk_hex,
+                sources,
+            })
+        })
+        .collect::<Result<Vec<_>, AppError>>()?;
+
+    Ok(Json(ElementsResponse { elements }))
 }
 
 #[utoipa::path(
@@ -585,6 +770,20 @@ fn gcd(mut a: u32, mut b: u32) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn seeded_elements_are_valid() {
+        let elements = element_seeds().expect("seed deve carregar");
+        validate_elements(&elements).expect("elementos devem ser válidos");
+        assert_eq!(elements.len(), 118);
+    }
+
+    #[test]
+    fn rejects_duplicate_element_symbol() {
+        let mut elements = element_seeds().expect("seed deve carregar");
+        elements[1].symbol = elements[0].symbol.clone();
+        assert!(validate_elements(&elements).is_err());
+    }
 
     #[test]
     fn seeded_reactions_are_valid() {

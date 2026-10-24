@@ -54,6 +54,7 @@ pub fn app(state: AppState) -> Router {
             get(visualizations::get_visualization),
         )
         .route("/api/v1/enem/topics", get(topics::list_topics))
+        .route("/api/v1/chemistry/elements", get(chemistry::get_elements))
         .route(
             "/api/v1/chemistry/reactions/{id}",
             get(chemistry::get_reaction),
