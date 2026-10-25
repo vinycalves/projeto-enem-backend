@@ -96,12 +96,50 @@ async fn register(app: &Router) -> (String, String) {
 }
 
 async fn first_question(pool: &PgPool) -> (Uuid, String) {
+    if let Some(question) = sqlx::query_as::<_, (Uuid, String)>(
+        "SELECT id, correct_option FROM questions
+         WHERE external_id IS NOT NULL
+         ORDER BY code
+         LIMIT 1",
+    )
+    .fetch_optional(pool)
+    .await
+    .expect("falha ao buscar questão oficial")
+    {
+        return question;
+    }
+
+    let concept_id: Uuid = sqlx::query_scalar("SELECT id FROM concepts LIMIT 1")
+        .fetch_one(pool)
+        .await
+        .expect("conceito de seed ausente");
+    sqlx::query(
+        r#"
+        INSERT INTO questions (
+            id, concept_id, code, statement, option_a, option_b, option_c,
+            option_d, option_e, correct_option, explanation, difficulty,
+            source, license, year, language, external_id
+        )
+        VALUES (
+            $1, $2, 'TEST-OFICIAL-001', 'Questão oficial de teste',
+            'A', 'B', 'C', 'D', 'E', 'A', 'Gabarito de teste', 'medio',
+            'INEP', 'Público', 2023, 'comum', 'test:oficial:001'
+        )
+        "#,
+    )
+    .bind(Uuid::now_v7())
+    .bind(concept_id)
+    .execute(pool)
+    .await
+    .expect("falha ao criar questão oficial de teste");
+
     sqlx::query_as::<_, (Uuid, String)>(
-        "SELECT id, correct_option FROM questions WHERE code = 'MAT-FAFIM-001'",
+        "SELECT id, correct_option FROM questions
+         WHERE external_id = 'test:oficial:001'",
     )
     .fetch_one(pool)
     .await
-    .expect("questão de seed ausente")
+    .expect("questão oficial de teste ausente")
 }
 
 #[sqlx::test(migrations = "./migrations")]
@@ -443,10 +481,11 @@ async fn question_assets_and_language_are_returned(pool: PgPool) {
         INSERT INTO questions (
             id, concept_id, code, statement, option_a, option_b, option_c,
             option_d, option_e, correct_option, explanation, difficulty,
-            source, license, language
+            source, license, language, external_id
         )
         VALUES ($1, $2, 'TEST-ASSET-001', 'Questão com imagem', 'A', 'B', 'C', 'D', 'E',
-                'A', 'Explicação', 'medio', 'Teste', 'CC BY-SA 4.0', 'ingles')
+                'A', 'Explicação', 'medio', 'Teste', 'CC BY-SA 4.0', 'ingles',
+                'test:asset:001')
         "#,
     )
     .bind(question_id)

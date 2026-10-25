@@ -257,6 +257,7 @@ pub async fn list_questions(
         JOIN subjects s ON s.id = c.subject_id
         JOIN areas a ON a.id = s.area_id
         WHERE ($2::uuid IS NULL OR q.concept_id = $2)
+          AND q.external_id IS NOT NULL
         ORDER BY q.code
         "#,
     )
@@ -330,6 +331,7 @@ pub async fn get_question(
         JOIN subjects s ON s.id = c.subject_id
         JOIN areas a ON a.id = s.area_id
         WHERE q.id = $2
+          AND q.external_id IS NOT NULL
         "#,
     )
     .bind(auth.id)
@@ -414,12 +416,13 @@ pub async fn create_attempt(
 ) -> Result<(StatusCode, Json<AttemptResponse>), AppError> {
     let selected_option = validate_option(&payload.selected_option)?;
 
-    let correct_option =
-        sqlx::query_scalar::<_, String>("SELECT correct_option FROM questions WHERE id = $1")
-            .bind(question_id)
-            .fetch_optional(&state.pool)
-            .await?
-            .ok_or_else(|| AppError::NotFound("Questão não encontrada.".to_string()))?;
+    let correct_option = sqlx::query_scalar::<_, String>(
+        "SELECT correct_option FROM questions WHERE id = $1 AND external_id IS NOT NULL",
+    )
+    .bind(question_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("Questão não encontrada.".to_string()))?;
 
     let is_correct = selected_option == correct_option.trim();
     let attempt_id = Uuid::now_v7();
@@ -582,7 +585,7 @@ pub async fn get_answer(
         r#"
         SELECT correct_option, explanation, source, license
         FROM questions
-        WHERE id = $1
+        WHERE id = $1 AND external_id IS NOT NULL
         "#,
     )
     .bind(question_id)
@@ -608,10 +611,11 @@ pub async fn my_stats(
         r#"
         SELECT
             count(*)::bigint AS total_attempts,
-            count(*) FILTER (WHERE is_correct)::bigint AS correct_attempts,
-            count(DISTINCT question_id)::bigint AS questions_answered
-        FROM attempts
-        WHERE user_id = $1
+            count(*) FILTER (WHERE at.is_correct)::bigint AS correct_attempts,
+            count(DISTINCT at.question_id)::bigint AS questions_answered
+        FROM attempts at
+        JOIN questions q ON q.id = at.question_id
+        WHERE at.user_id = $1 AND q.external_id IS NOT NULL
         "#,
     )
     .bind(auth.id)
@@ -636,7 +640,7 @@ pub async fn my_stats(
         FROM attempts at
         JOIN questions q ON q.id = at.question_id
         JOIN concepts c ON c.id = q.concept_id
-        WHERE at.user_id = $1
+        WHERE at.user_id = $1 AND q.external_id IS NOT NULL
         ORDER BY at.created_at DESC
         LIMIT 5
         "#,
@@ -664,8 +668,11 @@ async fn ensure_attempt(
     let has_attempt = sqlx::query_scalar::<_, bool>(
         r#"
         SELECT EXISTS(
-            SELECT 1 FROM attempts
-            WHERE user_id = $1 AND question_id = $2
+            SELECT 1 FROM attempts at
+            JOIN questions q ON q.id = at.question_id
+            WHERE at.user_id = $1
+              AND at.question_id = $2
+              AND q.external_id IS NOT NULL
         )
         "#,
     )

@@ -30,7 +30,8 @@ pub async fn list_exams(State(state): State<AppState>) -> Result<Json<ExamsRespo
             a.code AS area_code,
             a.name AS area_name,
             a.color AS area_color,
-            (SELECT count(*) FROM questions q WHERE q.concept_id = c.id) AS question_count
+            (SELECT count(*) FROM questions q
+             WHERE q.concept_id = c.id AND q.external_id IS NOT NULL) AS question_count
         FROM concepts c
         JOIN subjects s ON s.id = c.subject_id
         JOIN areas a ON a.id = s.area_id
